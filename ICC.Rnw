@@ -1,0 +1,1382 @@
+\documentclass{article}
+
+\usepackage[cm]{fullpage}
+\usepackage[usenames, dvipsnames]{color}
+\usepackage{datetime}
+\usepackage{fancyhdr}
+\usepackage[ngerman]{babel}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\setlength{\parindent}{0pt}
+\newdateformat{myformat}{\THEDAY{ten }\monthname[\THEMONTH], \THEYEAR}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\pagenumbering{arabic}
+
+<<echo=FALSE>>=
+rm(list=ls())
+options(warn=-1)
+mround <- function(x,base){ 
+        base*round(x/base) 
+}
+# source("functions.R")
+# library(xlsx)
+name <- "Joel"
+# foo <- merger()
+# head(foo)
+# tail(foo)
+# tt <- unique(paste(foo$name,foo$sheet))
+# tt <- tt[order(tt)]
+# tt
+# write.table(foo,"alldata.csv",sep=";",row.names=FALSE)
+@
+  
+\fancyhf{}
+\fancyfoot[L]{\Sexpr{print(paste("Bericht ICC 2015",name))}}
+\fancyfoot[R]{\thepage}
+\renewcommand\headrulewidth{0pt}
+\pagestyle{fancy}
+
+\renewcommand{\arraystretch}{1.5}
+
+<<echo=FALSE>>=
+# Daten einlesen
+foo <- read.csv("../01_Data/alldata.csv",stringsAsFactors=FALSE,sep=";")
+foo$sheet <- gsub("_"," ",foo$sheet)
+# head(foo)
+# tail(foo)
+# str(foo)
+
+# Definition und Berechnung des ersten Standards
+# names(foo)
+# unique(foo$name)
+pt <- c("Freddy","Raphael","Andre","Manfred","Joel","Christian")
+
+ra <- which(foo$name%in%pt); st1 <- foo[ra,]
+st1a <- aggregate(st1,by=list(st1$picture),median,na.rm=TRUE)
+st1a$picture <- st1a$Group.1; st1a <- st1a[,-c(1,9,10)]
+
+# head(st1a)
+names(st1a)[2:7] <- paste0(names(st1a)[2:7],"_standard")
+# names(st1a)
+
+bar <- merge(foo,st1a,by="picture",all=TRUE)
+# head(bar)
+
+bar$CHleft_diff <- bar$CHleft-bar$CHleft_standard
+bar$CHright_diff <- bar$CHright-bar$CHright_standard
+bar$CHdefol_diff <- bar$CHdefol-bar$CHdefol_standard
+bar$EUleft_diff <- bar$EUleft-bar$EUleft_standard
+bar$EUright_diff <- bar$EUright-bar$EUright_standard
+bar$EUdefol_diff <- bar$EUdefol-bar$EUdefol_standard
+ds <- unique(bar$sheet)
+ds <- ds[order(ds)]
+@
+  
+\begin{center}
+\textbf{\huge{Resultate}}\\
+\large{ICC 2015}\\
+\large{erstellt f\"{u}r \textbf{\Sexpr{print(name)}}}\\
+\large{am \today{}, \currenttime{} Uhr}\\ \smallskip
+\end{center}
+\bigskip
+\bigskip
+\bigskip
+
+Erkl\"{a}rungen:\\
+- Abweichung `Alle` bedeutet Durchschnitt aller Abweichungen\\
+- Abweichung `\Sexpr{paste(name)}` immer Abweichung vom Standard (Median)\\
+- Bilder immer sortiert nach `Defol Alle`\\
+- rote Farbe heisst \"{U}bersch\"{a}tzung, blaue Farbe heisst Untersch\"{a}tzung\\
+- Links steht jeweils die Abweichung, rechts der Standard\\ \\
+
+Aufteilung: Jedes Beurteilungsblatt separat in:\\
+- Schweizerisches System\\
+- Europ\"{a}isches System\\
+
+\newpage
+\section*{Schweizerisches System, \Sexpr{paste(ds[1])}}
+<<label=einsCH,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[1]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="CHdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="CHleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-einsCH}
+\newpage
+
+\section*{Europ\"{a}isches System, \Sexpr{paste(ds[1])}}
+<<label=einsEU,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[1]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="EUdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="EUleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-einsEU}
+\newpage
+
+\section*{Schweizerisches System, \Sexpr{paste(ds[2])}}
+<<label=zweiCH,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[2]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="CHdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="CHleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-zweiCH}
+\newpage
+
+\section*{Europ\"{a}isches System, \Sexpr{paste(ds[2])}}
+<<label=zweiEU,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[2]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="EUdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="EUleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-zweiEU}
+\newpage
+
+\section*{Schweizerisches System, \Sexpr{paste(ds[3])}}
+<<label=dreiCH,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[3]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="CHdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="CHleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-dreiCH}
+\newpage
+
+\section*{Europ\"{a}isches System, \Sexpr{paste(ds[3])}}
+<<label=dreiEU,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[3]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="EUdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="EUleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-dreiEU}
+\newpage
+
+\section*{Schweizerisches System, \Sexpr{paste(ds[4])}}
+<<label=vierCH,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[4]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="CHdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="CHleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-vierCH}
+\newpage
+
+\section*{Europ\"{a}isches System, \Sexpr{paste(ds[4])}}
+<<label=vierEU,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[4]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="EUdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="EUleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-vierEU}
+\newpage
+
+\section*{Schweizerisches System, \Sexpr{paste(ds[5])}}
+<<label=fuenfCH,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[5]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="CHdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="CHleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-fuenfCH}
+\newpage
+
+\section*{Europ\"{a}isches System, \Sexpr{paste(ds[5])}}
+<<label=fuenfEU,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[5]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="EUdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="EUleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-fuenfEU}
+\newpage
+
+\section*{Schweizerisches System, \Sexpr{paste(ds[6])}}
+<<label=sechsCH,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[6]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="CHdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="CHleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="CHdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="CHdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-sechsCH}
+\newpage
+
+\section*{Europ\"{a}isches System, \Sexpr{paste(ds[6])}}
+<<label=sechsEU,fig=TRUE,echo=FALSE,include=FALSE,width=7,height=7>>=
+oo <- ds[6]
+ra <- which(bar$name==name&bar$sheet==oo)
+hoi <- bar[ra,]
+zuz <- aggregate(bar[bar$sheet==oo,],by=list(bar$picture[bar$sheet==oo]),
+                 mean,na.rm=TRUE)
+zuz <- zuz[,-1]
+
+par(mfrow=c(1,6),mar=c(4,1,5,1),oma=c(2,5,0,2))
+
+ii <- which(names(hoi)=="EUdefol_diff")
+zuz <- zuz[order(zuz[,ii]),]
+# head(zuz$picture)
+hoi <- hoi[order(factor(hoi$picture,levels=c(zuz$picture))),]
+# head(hoi$picture)
+
+if(zuz$picture!=hoi$picture) {print("stop")}
+
+ii <- which(names(hoi)=="EUleft_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Links Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(text=paste(zuz$picture," "),side=2,at=c(1:length(zuz[,ii])),las=1,
+      cex=0.7)
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+mtext("Abweichung",3,adj=-0.1,cex=0.5,line=0.5)
+mtext("Standard",3,adj=1.1,cex=0.5,line=0.5)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Links",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUleft_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUright_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main="Rechts Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(zuz[,ii],1),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-6.5,6.5),main=paste("Rechts",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(round(hoi[,ii],0),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUright_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+ii <- which(names(hoi)=="EUdefol_diff")
+farb <- rep("blue",length(zuz[,ii]))
+farb[which(!zuz[,ii]<=0)] <- "red"
+barplot(zuz[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main="Defol Alle",xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(zuz[,ii],5),at=c(1:length(zuz[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+farb <- rep("blue",length(hoi[,ii]))
+farb[which(!hoi[,ii]<=0)] <- "red"
+barplot(hoi[,ii],horiz=TRUE,col=farb,
+        xlim=c(-37,37),main=paste("Defol",name),xlab="Abweichung")
+abline(v=0)
+box()
+par(new=TRUE)
+plot(c(0.6,length(zuz[,ii])+0.4),axes=FALSE,xlab="",ylab="",type="n")
+mtext(mround(hoi[,ii],5),at=c(1:length(hoi[,ii])),side=2,las=1,cex=0.7,line=-2)
+it <- which(names(hoi)=="EUdefol_standard")
+mtext(round(zuz[,it],1),at=c(1:length(zuz[,ii])),side=4,las=1,cex=0.7,line=-2)
+
+mtext("Meine Angabe",3,adj=2.8,cex=0.5,line=0.5)
+uq <- gsub("_diff","",names(hoi)[ii])
+uq <- which(names(hoi)==uq)
+mtext(round(hoi[,uq],1),at=c(1:length(hoi[,ii])),side=4,las=1,cex=0.7,line=1)
+@
+  
+\includegraphics[width=1\textwidth]{ICC-sechsEU}
+\end{document}
